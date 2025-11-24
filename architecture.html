@@ -318,19 +318,113 @@
             color: var(--primary-dark);
         }
         
+        /* Hamburger Menu Button (Mobile) */
+        #menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: background 0.2s;
+        }
+        
+        #menu-toggle:hover {
+            background: var(--primary-dark);
+        }
+        
+        #menu-toggle span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            background: white;
+            margin: 5px 0;
+            transition: 0.3s;
+        }
+        
         /* Responsive Design */
         @media (max-width: 768px) {
-            #toc-sidebar {
-                width: 250px;
+            /* Show hamburger menu */
+            #menu-toggle {
+                display: block;
             }
             
+            /* Hide sidebar by default on mobile */
+            #toc-sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                width: 280px;
+                z-index: 1000;
+            }
+            
+            /* Show sidebar when active */
+            #toc-sidebar.active {
+                transform: translateX(0);
+            }
+            
+            /* Content takes full width on mobile */
             #content-area {
-                margin-left: 250px;
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            /* Adjust header padding for menu button */
+            #content-header {
+                padding-left: 4rem;
+            }
+            
+            #content-header h1 {
+                font-size: 1.3rem;
             }
             
             #main-content {
                 margin: 1rem;
                 padding: 1rem;
+            }
+            
+            /* Overlay when sidebar is open */
+            #sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+            }
+            
+            #sidebar-overlay.active {
+                display: block;
+            }
+            
+            /* Adjust back to top button */
+            #back-to-top {
+                bottom: 20px;
+                right: 20px;
+                padding: 8px 12px;
+                font-size: 0.9em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #content-header h1 {
+                font-size: 1.1rem;
+            }
+            
+            #toc-sidebar {
+                width: 250px;
+            }
+            
+            #main-content {
+                margin: 0.5rem;
+                padding: 0.75rem;
             }
         }
         
@@ -447,9 +541,33 @@
             document.getElementById('search-input').value = '';
             searchContent();
         }
+        
+        // Toggle sidebar on mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('toc-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+        
+        // Close sidebar when clicking overlay
+        document.addEventListener('DOMContentLoaded', function() {
+            const overlay = document.getElementById('sidebar-overlay');
+            overlay.addEventListener('click', toggleSidebar);
+        });
     </script>
 </head>
 <body>
+    <!-- Hamburger Menu Button (Mobile) -->
+    <button id="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    
+    <!-- Sidebar Overlay (Mobile) -->
+    <div id="sidebar-overlay"></div>
+    
     <!-- Left Sidebar - Table of Contents -->
     <aside id="toc-sidebar">
         <div id="search-box">
