@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartSupplement Architecture Documentation</title>
+    <style>
+        :root {
+            /* 主色调 - Teal 青色系 */
+            --primary-color: #14b8a6;
+            --primary-dark: #0d9488;
+            --primary-light: #5eead4;
+            
+            /* 背景色 */
+            --bg-main: #f8fafc;
+            --bg-sidebar: #1e293b;
+            --bg-sidebar-dark: #0f172a;
+            --bg-content: #ffffff;
+            
+            /* 文字色 */
+            --text-main: #1e293b;
+            --text-light: #64748b;
+            --text-white: #f8fafc;
+            
+            /* 强调色 */
+            --accent-color: #f59e0b;
+            --accent-dark: #d97706;
+            
+            /* 边框和分隔线 */
+            --border-color: #e2e8f0;
+            --divider-color: #cbd5e1;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            background: var(--bg-main);
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Left Sidebar - TOC */
+        #toc-sidebar {
+            width: 300px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            background: var(--bg-sidebar);
+            color: var(--text-white);
+            padding: 2rem;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        #toc-sidebar h2 {
+            color: var(--text-white);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Search Box Styles */
+        #search-box {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        
+        #search-input {
+            width: 100%;
+            padding: 0.75rem;
+            padding-right: 2.5rem;
+            border: 2px solid var(--primary-color);
+            border-radius: 5px;
+            background: var(--bg-sidebar-dark);
+            color: var(--text-white);
+            font-size: 0.9em;
+            outline: none;
+            transition: all 0.2s;
+        }
+        
+        #search-input::placeholder {
+            color: var(--text-light);
+        }
+        
+        #search-input:focus {
+            background: var(--bg-sidebar);
+            border-color: var(--primary-light);
+            box-shadow: 0 0 10px rgba(20, 184, 166, 0.3);
+        }
+        
+        #clear-btn {
+            position: absolute;
+            right: 0.5rem;
+            top: 0.65rem;
+            background: transparent;
+            border: none;
+            color: var(--text-light);
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            transition: color 0.2s;
+        }
+        
+        #clear-btn:hover {
+            color: #ef4444;
+        }
+        
+        #result-count {
+            margin-top: 0.5rem;
+            font-size: 0.85em;
+            color: var(--primary-light);
+            text-align: center;
+        }
+        
+        /* Search Highlight */
+        .search-highlight {
+            background: var(--accent-color);
+            color: var(--text-main);
+            padding: 0.1rem 0.2rem;
+            border-radius: 2px;
+            font-weight: 600;
+        }
+        
+        .toc {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .toc li {
+            margin: 0.5rem 0;
+        }
+        
+        .toc a {
+            color: var(--primary-light);
+            text-decoration: none;
+            transition: all 0.2s;
+            display: block;
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .toc a:hover {
+            background: rgba(20, 184, 166, 0.1);
+            color: var(--primary-color);
+            padding-left: 1rem;
+        }
+        
+        .toc ul {
+            list-style: none;
+            padding-left: 1rem;
+        }
+        
+        .toc ul li {
+            margin: 0.3rem 0;
+        }
+        
+        .toc ul a {
+            font-size: 0.9em;
+            color: #94a3b8;
+        }
+        
+        /* Right Content Area */
+        #content-area {
+            margin-left: 300px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Sticky Header */
+        #content-header {
+            position: sticky;
+            top: 0;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 100;
+            margin: 0;
+        }
+        
+        #content-header h1 {
+            margin: 0;
+            font-size: 2rem;
+            color: white;
+            border: none;
+            padding: 0;
+            font-weight: 700;
+        }
+        
+        #main-content {
+            background: var(--bg-content);
+            padding: 2rem;
+            margin: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            flex: 1;
+        }
+        
+        /* Back to top button */
+        #back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: background 0.2s;
+            z-index: 1000;
+        }
+        
+        #back-to-top:hover {
+            background: var(--primary-dark);
+        }
+        
+        h1, h2, h3, h4, h5 {
+            color: var(--text-main);
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Hide first h1 in content since it's in the header */
+        #main-content > h1:first-child {
+            display: none;
+        }
+        
+        h1 {
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        h2 {
+            border-bottom: 2px solid var(--divider-color);
+            padding-bottom: 0.3rem;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1rem 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            text-align: left;
+        }
+        
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        
+        tr:hover {
+            background-color: #f1f5f9;
+        }
+        
+        code {
+            background: #f1f5f9;
+            color: #e11d48;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background: var(--bg-sidebar);
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        pre code {
+            background: transparent;
+            color: inherit;
+        }
+        
+        .mermaid {
+            background: #fafafa;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+            border: 1px solid var(--border-color);
+        }
+        
+        hr {
+            border: none;
+            border-top: 2px solid var(--border-color);
+            margin: 2rem 0;
+        }
+        
+        a {
+            color: var(--primary-color);
+        }
+        
+        a:hover {
+            color: var(--primary-dark);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            #toc-sidebar {
+                width: 250px;
+            }
+            
+            #content-area {
+                margin-left: 250px;
+            }
+            
+            #main-content {
+                margin: 1rem;
+                padding: 1rem;
+            }
+        }
+        
+        /* Scrollbar styling for TOC */
+        #toc-sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #toc-sidebar::-webkit-scrollbar-track {
+            background: var(--bg-sidebar-dark);
+        }
+        
+        #toc-sidebar::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+        
+        #toc-sidebar::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+    <script>
+        // Search functionality
+        function searchContent() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const content = document.getElementById('main-content');
+            const resultCount = document.getElementById('result-count');
+            
+            // Remove previous highlights
+            const highlighted = content.querySelectorAll('.search-highlight');
+            highlighted.forEach(el => {
+                const parent = el.parentNode;
+                parent.replaceChild(document.createTextNode(el.textContent), el);
+                parent.normalize();
+            });
+            
+            if (!searchTerm) {
+                resultCount.textContent = '';
+                return;
+            }
+            
+            // Highlight matching text
+            let count = 0;
+            const walker = document.createTreeWalker(
+                content,
+                NodeFilter.SHOW_TEXT,
+                { acceptNode: node => {
+                    // Skip script and style elements
+                    if (node.parentElement.tagName === 'SCRIPT' || 
+                        node.parentElement.tagName === 'STYLE') {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    return NodeFilter.FILTER_ACCEPT;
+                } }
+            );
+            
+            const nodesToReplace = [];
+            while (walker.nextNode()) {
+                const node = walker.currentNode;
+                if (node.textContent.toLowerCase().includes(searchTerm)) {
+                    nodesToReplace.push(node);
+                }
+            }
+            
+            nodesToReplace.forEach(node => {
+                const text = node.textContent;
+                const lowerText = text.toLowerCase();
+                let lastIndex = 0;
+                const fragment = document.createDocumentFragment();
+                
+                let index = lowerText.indexOf(searchTerm, lastIndex);
+                while (index !== -1) {
+                    // Add text before match
+                    if (index > lastIndex) {
+                        fragment.appendChild(document.createTextNode(text.substring(lastIndex, index)));
+                    }
+                    
+                    // Add highlighted match
+                    const mark = document.createElement('mark');
+                    mark.className = 'search-highlight';
+                    mark.textContent = text.substring(index, index + searchTerm.length);
+                    fragment.appendChild(mark);
+                    count++;
+                    
+                    lastIndex = index + searchTerm.length;
+                    index = lowerText.indexOf(searchTerm, lastIndex);
+                }
+                
+                // Add remaining text
+                if (lastIndex < text.length) {
+                    fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+                }
+                
+                node.parentNode.replaceChild(fragment, node);
+            });
+            
+            resultCount.textContent = count > 0 ? `找到 ${count} 個結果` : '未找到結果';
+            
+            // Scroll to first result
+            if (count > 0) {
+                const firstHighlight = content.querySelector('.search-highlight');
+                if (firstHighlight) {
+                    firstHighlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+        
+        // Clear search
+        function clearSearch() {
+            document.getElementById('search-input').value = '';
+            searchContent();
+        }
+    </script>
+</head>
+<body>
+    <!-- Left Sidebar - Table of Contents -->
+    <aside id="toc-sidebar">
+        <div id="search-box">
+            <input type="text" id="search-input" placeholder="🔍 搜尋文件內容..." onkeyup="searchContent()">
+            <button id="clear-btn" onclick="clearSearch()">✕</button>
+            <div id="result-count"></div>
+        </div>
+        <h2>📑 目錄索引</h2>
+        <div class="toc">
+<ul>
+<li><a href="#_1">📐 整體架構概覽</a><ul>
+<li><a href="#_2">架構模式</a></li>
+</ul>
+</li>
+<li><a href="#_3">🗺️ 架構心智圖</a></li>
+<li><a href="#_4">📦 模組架構圖</a></li>
+<li><a href="#_5">📋 模組詳細說明</a><ul>
+<li><a href="#1-maindart">1️⃣ 應用入口（main.dart）</a></li>
+<li><a href="#2-models">2️⃣ 資料模型層（models/）</a></li>
+<li><a href="#3-pages">3️⃣ 頁面層（pages/）</a></li>
+<li><a href="#4-providers">4️⃣ 狀態管理層（providers/）</a></li>
+<li><a href="#5-services">5️⃣ 服務層（services/）</a></li>
+</ul>
+</li>
+<li><a href="#_40">🔄 資料流向圖</a></li>
+<li><a href="#_41">📊 關鍵業務流程</a><ul>
+<li><a href="#_42">新增保健食品流程</a></li>
+<li><a href="#_43">智慧採購流程</a></li>
+</ul>
+</li>
+<li><a href="#_44">🎯 核心技術特點</a><ul>
+<li><a href="#1">1. 動態庫存管理</a></li>
+<li><a href="#2">2. 智慧補貨系統</a></li>
+<li><a href="#3">3. 本地資料持久化</a></li>
+<li><a href="#4">4. 狀態管理</a></li>
+<li><a href="#5">5. 通知系統</a></li>
+</ul>
+</li>
+<li><a href="#_45">📱 支援平台</a></li>
+<li><a href="#_46">📚 依賴套件</a><ul>
+<li><a href="#_47">核心依賴</a></li>
+<li><a href="#_48">開發依賴</a></li>
+</ul>
+</li>
+<li><a href="#_49">🔐 資料庫結構</a><ul>
+<li><a href="#hive-box">Hive Box</a></li>
+<li><a href="#supplement-schema">Supplement Schema</a></li>
+</ul>
+</li>
+<li><a href="#_50">💡 設計亮點</a></li>
+<li><a href="#uiux">🎨 UI/UX 設計原則</a></li>
+<li><a href="#_51">📌 版本資訊</a></li>
+</ul>
+</div>
+
+    </aside>
+    
+    <!-- Right Content Area -->
+    <div id="content-area">
+        <header id="content-header">
+            <h1>📚 SmartSupplement 應用程式架構文檔</h1>
+        </header>
+        <div id="main-content">
+            <h1 id="smartsupplement">SmartSupplement 應用程式架構文檔</h1>
+<h2 id="_1">📐 整體架構概覽</h2>
+<p>SmartSupplement 是一個基於 <strong>Flutter</strong> 框架開發的智慧保健食品庫存管理系統，採用 <strong>Provider</strong> 狀態管理模式，使用 <strong>Hive</strong> 作為本地資料庫。</p>
+<h3 id="_2">架構模式</h3>
+<p>採用 <strong>MVC + Provider</strong> 混合架構：
+- <strong>Model</strong>: 資料模型層（<code>models/</code>）
+- <strong>View</strong>: UI 視圖層（<code>pages/</code>）
+- <strong>Controller/Provider</strong>: 業務邏輯與狀態管理（<code>providers/</code>）
+- <strong>Services</strong>: 外部服務層（<code>services/</code>）</p>
+<hr />
+<h2 id="_3">🗺️ 架構心智圖</h2>
+<pre><div class="mermaid">graph TB
+    Main[main.dart&lt;br/&gt;應用入口] --&gt; App[MyApp]
+
+    App --&gt; Pages[頁面層 Pages]
+    App --&gt; Providers[狀態管理 Providers]
+    App --&gt; Services[服務層 Services]
+
+    Pages --&gt; Dashboard[&quot;DashboardPage&lt;br/&gt;儀表板主頁&quot;]
+    Pages --&gt; Detail[&quot;DetailPage&lt;br/&gt;產品詳情&quot;]
+    Pages --&gt; Shopping[&quot;ShoppingListPage&lt;br/&gt;智慧採購清單&quot;]
+    Pages --&gt; SmartAdd[&quot;SmartAddPage&lt;br/&gt;智慧新增&quot;]
+
+    Providers --&gt; SupProvider[&quot;SupplementProvider&lt;br/&gt;保健食品狀態管理&quot;]
+    Providers --&gt; ShopProvider[&quot;ShoppingListProvider&lt;br/&gt;採購清單狀態管理&quot;]
+
+    Services --&gt; NotifService[&quot;NotificationService&lt;br/&gt;通知服務&quot;]
+
+    Models[資料模型 Models] --&gt; Supplement[&quot;Supplement&lt;br/&gt;保健食品模型&quot;]
+
+    SupProvider --&gt; Hive[(Hive Database&lt;br/&gt;本地資料庫)]
+    SupProvider --&gt; Models
+    ShopProvider --&gt; SupProvider
+    ShopProvider --&gt; Models
+
+    Dashboard --&gt; SupProvider
+    Detail --&gt; SupProvider
+    Shopping --&gt; ShopProvider
+    SmartAdd --&gt; SupProvider
+
+    Main --&gt; NotifService
+    Dashboard --&gt; NotifService
+
+    style Main fill:#e1f5ff
+    style Models fill:#fff4e1
+    style Pages fill:#e8f5e9
+    style Providers fill:#f3e5f5
+    style Services fill:#ffe4e1
+</div></pre>
+<hr />
+<h2 id="_4">📦 模組架構圖</h2>
+<pre><div class="mermaid">graph LR
+    subgraph UI[&quot;UI 層（用戶界面）&quot;]
+        D[DashboardPage]
+        DT[DetailPage]
+        S[ShoppingListPage]
+        A[SmartAddPage]
+    end
+
+    subgraph Logic[&quot;邏輯層（狀態管理）&quot;]
+        SP[SupplementProvider]
+        SLP[ShoppingListProvider]
+    end
+
+    subgraph Data[&quot;資料層（模型 + 儲存）&quot;]
+        M[Supplement Model]
+        H[(Hive DB)]
+    end
+
+    subgraph External[&quot;外部服務&quot;]
+        N[NotificationService]
+    end
+
+    D --&gt; SP
+    DT --&gt; SP
+    S --&gt; SLP
+    A --&gt; SP
+
+    SLP --&gt; SP
+    SP --&gt; M
+    SP --&gt; H
+
+    D --&gt; N
+
+    style UI fill:#e8f5e9
+    style Logic fill:#f3e5f5
+    style Data fill:#fff4e1
+    style External fill:#ffe4e1
+</div></pre>
+<hr />
+<h2 id="_5">📋 模組詳細說明</h2>
+<h3 id="1-maindart">1️⃣ 應用入口（main.dart）</h3>
+<h4 id="_6">功能概述</h4>
+<p>應用程式的啟動入口，負責初始化系統和配置全域設定。</p>
+<h4 id="_7">核心函數</h4>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>main()</code></td>
+<td>應用入口點，初始化 Flutter、Hive 資料庫、通知服務</td>
+</tr>
+<tr>
+<td><code>MyApp.build()</code></td>
+<td>構建應用根 Widget，配置 Provider、主題、路由</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_8">主要職責</h4>
+<ul>
+<li>初始化 Hive 資料庫</li>
+<li>註冊 <code>SupplementAdapter</code></li>
+<li>初始化通知服務</li>
+<li>配置 <code>MultiProvider</code>（狀態管理）</li>
+<li>設定應用主題（亮色/暗色模式）</li>
+<li>配置路由系統</li>
+</ul>
+<hr />
+<h3 id="2-models">2️⃣ 資料模型層（models/）</h3>
+<h4 id="supplementdart-">📄 <code>supplement.dart</code> - 保健食品資料模型</h4>
+<h5 id="_9">功能概述</h5>
+<p>定義保健食品的資料結構和核心業務邏輯，包含動態庫存計算、補貨判斷、批次採購等功能。</p>
+<h5 id="_10">資料欄位</h5>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>類型</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>String</td>
+<td>唯一識別碼（UUID）</td>
+</tr>
+<tr>
+<td><code>barcode</code></td>
+<td>String?</td>
+<td>產品條碼（選填）</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>String</td>
+<td>產品名稱</td>
+</tr>
+<tr>
+<td><code>brand</code></td>
+<td>String</td>
+<td>品牌名稱</td>
+</tr>
+<tr>
+<td><code>imagePath</code></td>
+<td>String</td>
+<td>圖片路徑（網路 URL）</td>
+</tr>
+<tr>
+<td><code>quantityPerBottle</code></td>
+<td>int</td>
+<td>每瓶顆數</td>
+</tr>
+<tr>
+<td><code>dailyDosage</code></td>
+<td>int</td>
+<td>每日建議用量（顆）</td>
+</tr>
+<tr>
+<td><code>currentStock</code></td>
+<td>int</td>
+<td>目前庫存（顆數）</td>
+</tr>
+<tr>
+<td><code>leadTime</code></td>
+<td>int</td>
+<td>備貨天數（預設 3 天）</td>
+</tr>
+<tr>
+<td><code>lastUpdated</code></td>
+<td>DateTime</td>
+<td>最後更新時間</td>
+</tr>
+<tr>
+<td><code>localImagePath</code></td>
+<td>String?</td>
+<td>本地圖片路徑</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_11">核心函數</h5>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>回傳值</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>estimatedCurrentStock</code></td>
+<td>int</td>
+<td>根據最後更新時間動態計算目前預估庫存</td>
+</tr>
+<tr>
+<td><code>remainingDays</code></td>
+<td>int</td>
+<td>計算庫存還能使用幾天</td>
+</tr>
+<tr>
+<td><code>shouldReorder</code></td>
+<td>bool</td>
+<td>判斷是否應該補貨</td>
+</tr>
+<tr>
+<td><code>statusEmoji</code></td>
+<td>String</td>
+<td>取得狀態表情符號（🔴/🟠/🟢）</td>
+</tr>
+<tr>
+<td><code>statusText</code></td>
+<td>String</td>
+<td>取得狀態文字（斷貨風險/建議補貨/庫存充足）</td>
+</tr>
+<tr>
+<td><code>calculateBottlesToBuy(days)</code></td>
+<td>int</td>
+<td>計算指定週期需要購買的瓶數</td>
+</tr>
+<tr>
+<td><code>quickRestock()</code></td>
+<td>void</td>
+<td>快速補貨（增加一瓶）</td>
+</tr>
+<tr>
+<td><code>adjustStock(newStock)</code></td>
+<td>void</td>
+<td>手動調整庫存</td>
+</tr>
+<tr>
+<td><code>completePurchase(bottles)</code></td>
+<td>void</td>
+<td>批次採購完成，更新庫存</td>
+</tr>
+<tr>
+<td><code>copyWith(...)</code></td>
+<td>Supplement</td>
+<td>創建副本（用於編輯）</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_12">業務邏輯</h5>
+<p><strong>動態庫存計算公式</strong>：</p>
+<pre><code>預估庫存 = 目前庫存 - (經過天數 × 每日劑量)
+</code></pre>
+<p><strong>補貨判斷條件</strong>：</p>
+<pre><code>應該補貨 = 剩餘天數 ≤ 備貨天數 + 2
+</code></pre>
+<p><strong>批次採購計算</strong>：</p>
+<pre><code>目標庫存 = (採購週期 + 備貨天數) × 每日劑量
+缺口 = 目標庫存 - 預估庫存
+需購買瓶數 = ⌈缺口 ÷ 每瓶顆數⌉
+</code></pre>
+<hr />
+<h3 id="3-pages">3️⃣ 頁面層（pages/）</h3>
+<h4 id="dashboard_pagedart-">📱 <code>dashboard_page.dart</code> - 儀表板主頁</h4>
+<h5 id="_13">功能概述</h5>
+<p>應用的主頁面，顯示所有保健食品的庫存狀態，支援排序、查看詳情、快速補貨等功能。</p>
+<h5 id="_14">核心類別</h5>
+<table>
+<thead>
+<tr>
+<th>類別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DashboardPage</code></td>
+<td>主儀表板 Widget</td>
+</tr>
+<tr>
+<td><code>_DashboardPageState</code></td>
+<td>儀表板狀態管理</td>
+</tr>
+<tr>
+<td><code>_SupplementCard</code></td>
+<td>保健食品卡片 Widget</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_15">主要函數</h5>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>initState()</code></td>
+<td>初始化時排程通知</td>
+</tr>
+<tr>
+<td><code>_scheduleNotifications()</code></td>
+<td>設定每日和每月提醒通知</td>
+</tr>
+<tr>
+<td><code>build()</code></td>
+<td>構建 UI，包含 AppBar、清單、FAB</td>
+</tr>
+</tbody>
+</table>
+<h5 id="ui">UI 組件</h5>
+<ul>
+<li><strong>AppBar</strong>：標題、關於按鈕、採購清單按鈕、排序選單</li>
+<li><strong>空狀態提示</strong>：無產品時顯示提示訊息</li>
+<li><strong>RefreshIndicator</strong>：下拉刷新</li>
+<li><strong>ListView</strong>：保健食品卡片列表</li>
+<li><strong>FloatingActionButton</strong>：新增產品按鈕</li>
+</ul>
+<h5 id="_supplementcard"><code>_SupplementCard</code> 功能</h5>
+<ul>
+<li>顯示產品圖片（優先載入本地圖片）</li>
+<li>顯示產品名稱、品牌</li>
+<li>顯示庫存狀態（顆數、剩餘天數）</li>
+<li>狀態指示器（表情符號 + 顏色）</li>
+<li>快速補貨按鈕</li>
+</ul>
+<hr />
+<h4 id="detail_pagedart-">📝 <code>detail_page.dart</code> - 產品詳情頁</h4>
+<h5 id="_16">功能概述</h5>
+<p>顯示和編輯單一保健食品的詳細資訊，支援圖片上傳、資料修改、庫存調整、產品刪除。</p>
+<h5 id="_17">狀態管理</h5>
+<table>
+<thead>
+<tr>
+<th>狀態變數</th>
+<th>類型</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_isEditing</code></td>
+<td>bool</td>
+<td>是否在編輯模式</td>
+</tr>
+<tr>
+<td><code>_formKey</code></td>
+<td>GlobalKey</td>
+<td>表單驗證鍵</td>
+</tr>
+<tr>
+<td><code>_xxxController</code></td>
+<td>TextEditingController</td>
+<td>各欄位的文字控制器</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_18">核心函數</h5>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>initState()</code></td>
+<td>初始化控制器，載入產品資料</td>
+</tr>
+<tr>
+<td><code>dispose()</code></td>
+<td>釋放控制器資源</td>
+</tr>
+<tr>
+<td><code>_saveChanges()</code></td>
+<td>儲存產品修改，包含表單驗證</td>
+</tr>
+<tr>
+<td><code>_deleteSupplement()</code></td>
+<td>刪除產品（含確認對話框）</td>
+</tr>
+<tr>
+<td><code>_pickImage()</code></td>
+<td>選擇圖片（從相簿）</td>
+</tr>
+<tr>
+<td><code>_copyImageToPermanentStorage()</code></td>
+<td>將圖片複製到永久儲存</td>
+</tr>
+<tr>
+<td><code>_buildViewMode()</code></td>
+<td>構建查看模式 UI</td>
+</tr>
+<tr>
+<td><code>_buildEditMode()</code></td>
+<td>構建編輯模式 UI</td>
+</tr>
+<tr>
+<td><code>_buildInfoCard()</code></td>
+<td>構建資訊卡片</td>
+</tr>
+<tr>
+<td><code>_buildImage()</code></td>
+<td>構建產品圖片（優先本地）</td>
+</tr>
+<tr>
+<td><code>_getStatusColor()</code></td>
+<td>根據狀態取得顏色</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_19">功能特色</h5>
+<ul>
+<li>查看/編輯模式切換</li>
+<li>即時庫存預估顯示</li>
+<li>圖片選擇與預覽</li>
+<li>表單驗證</li>
+<li>刪除確認機制</li>
+</ul>
+<hr />
+<h4 id="shopping_list_pagedart-">🛒 <code>shopping_list_page.dart</code> - 智慧採購清單</h4>
+<h5 id="_20">功能概述</h5>
+<p>根據設定的採購週期，智慧計算所有產品的採購需求，支援批次採購完成。</p>
+<h5 id="_21">核心類別</h5>
+<table>
+<thead>
+<tr>
+<th>類別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ShoppingListPage</code></td>
+<td>採購清單主頁</td>
+</tr>
+<tr>
+<td><code>_ShoppingListPageState</code></td>
+<td>狀態管理</td>
+</tr>
+<tr>
+<td><code>_PurchaseItemCard</code></td>
+<td>採購項目卡片</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_22">主要函數</h5>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>initState()</code></td>
+<td>初始化週期天數控制器</td>
+</tr>
+<tr>
+<td><code>_completeAllPurchases()</code></td>
+<td>完成所有採購（含確認）</td>
+</tr>
+<tr>
+<td><code>_buildSettingsSection()</code></td>
+<td>構建採購週期設定區</td>
+</tr>
+<tr>
+<td><code>_buildSummarySection()</code></td>
+<td>構建採購摘要區</td>
+</tr>
+<tr>
+<td><code>_buildPurchaseList()</code></td>
+<td>構建採購清單</td>
+</tr>
+<tr>
+<td><code>_buildBottomButton()</code></td>
+<td>構建底部按鈕</td>
+</tr>
+<tr>
+<td><code>_buildImage()</code></td>
+<td>構建產品圖片</td>
+</tr>
+</tbody>
+</table>
+<h5 id="ui_1">UI 結構</h5>
+<ol>
+<li><strong>設定區</strong>：採購週期輸入（預設 30 天）</li>
+<li><strong>摘要區</strong>：顯示總共需購買的產品數和瓶數</li>
+<li><strong>需要採購區</strong>：列出所有需要購買的產品</li>
+<li><strong>暫無需購買區</strong>：可摺疊的庫存充足列表</li>
+<li><strong>底部按鈕</strong>：一鍵完成所有採購</li>
+</ol>
+<hr />
+<h4 id="smart_add_pagedart-">➕ <code>smart_add_page.dart</code> - 智慧新增頁面</h4>
+<h5 id="_23">功能概述</h5>
+<p>新增保健食品，支援條碼掃描、手動輸入、圖片上傳等功能。</p>
+<h5 id="_24">狀態管理</h5>
+<table>
+<thead>
+<tr>
+<th>狀態變數</th>
+<th>類型</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_formKey</code></td>
+<td>GlobalKey</td>
+<td>表單驗證鍵</td>
+</tr>
+<tr>
+<td><code>_xxxController</code></td>
+<td>TextEditingController</td>
+<td>各欄位控制器</td>
+</tr>
+<tr>
+<td><code>_showScanner</code></td>
+<td>bool</td>
+<td>是否顯示掃描器</td>
+</tr>
+<tr>
+<td><code>_selectedImagePath</code></td>
+<td>String?</td>
+<td>選擇的圖片路徑</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_25">核心函數</h5>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dispose()</code></td>
+<td>釋放所有控制器資源</td>
+</tr>
+<tr>
+<td><code>_pickImage()</code></td>
+<td>選擇產品圖片</td>
+</tr>
+<tr>
+<td><code>_copyImageToPermanentStorage()</code></td>
+<td>複製圖片到永久儲存</td>
+</tr>
+<tr>
+<td><code>_saveSupplement()</code></td>
+<td>儲存新產品到資料庫</td>
+</tr>
+<tr>
+<td><code>_buildScanner()</code></td>
+<td>構建條碼掃描器 UI</td>
+</tr>
+<tr>
+<td><code>_buildForm()</code></td>
+<td>構建輸入表單 UI</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_26">表單區塊</h5>
+<ol>
+<li><strong>條碼掃描區</strong></li>
+<li>手動輸入條碼</li>
+<li>
+<p>掃描器按鈕</p>
+</li>
+<li>
+<p><strong>基本資訊區</strong></p>
+</li>
+<li>產品名稱（必填）</li>
+<li>品牌（必填）</li>
+<li>產品圖片選擇</li>
+<li>
+<p>圖片網址（選填）</p>
+</li>
+<li>
+<p><strong>庫存設定區</strong></p>
+</li>
+<li>單瓶數量（預設 60）</li>
+<li>每日劑量（預設 2）</li>
+<li>目前庫存（預設 0）</li>
+<li>備貨天數（預設 3）</li>
+</ol>
+<hr />
+<h3 id="4-providers">4️⃣ 狀態管理層（providers/）</h3>
+<h4 id="supplement_providerdart-">🔄 <code>supplement_provider.dart</code> - 保健食品狀態管理</h4>
+<h5 id="_27">功能概述</h5>
+<p>管理所有保健食品的資料存取、CRUD 操作、排序功能。</p>
+<h5 id="_28">核心變數</h5>
+<table>
+<thead>
+<tr>
+<th>變數</th>
+<th>類型</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_box</code></td>
+<td>Box<Supplement>?</td>
+<td>Hive 資料庫盒子</td>
+</tr>
+<tr>
+<td><code>_supplements</code></td>
+<td>List<Supplement></td>
+<td>保健食品列表</td>
+</tr>
+<tr>
+<td><code>_currentSortOption</code></td>
+<td>SortOption</td>
+<td>目前排序選項</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_29">主要函數</h5>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>initialize()</code></td>
+<td>初始化 Hive 資料庫</td>
+</tr>
+<tr>
+<td><code>loadSupplements()</code></td>
+<td>從資料庫載入所有產品</td>
+</tr>
+<tr>
+<td><code>addSupplement(supplement)</code></td>
+<td>新增產品</td>
+</tr>
+<tr>
+<td><code>updateSupplement(supplement)</code></td>
+<td>更新產品</td>
+</tr>
+<tr>
+<td><code>deleteSupplement(id)</code></td>
+<td>刪除產品</td>
+</tr>
+<tr>
+<td><code>getSupplementById(id)</code></td>
+<td>根據 ID 取得產品</td>
+</tr>
+<tr>
+<td><code>quickRestock(id)</code></td>
+<td>快速補貨</td>
+</tr>
+<tr>
+<td><code>adjustStock(id, newStock)</code></td>
+<td>調整庫存</td>
+</tr>
+<tr>
+<td><code>setSortOption(option)</code></td>
+<td>設定排序方式</td>
+</tr>
+</tbody>
+</table>
+<h5 id="getter">Getter 函數</h5>
+<table>
+<thead>
+<tr>
+<th>Getter</th>
+<th>回傳值</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>supplements</code></td>
+<td>List<Supplement></td>
+<td>取得排序後的產品列表</td>
+</tr>
+<tr>
+<td><code>supplementsNeedingReorder</code></td>
+<td>List<Supplement></td>
+<td>需要補貨的產品</td>
+</tr>
+<tr>
+<td><code>supplementsAtRisk</code></td>
+<td>List<Supplement></td>
+<td>斷貨風險的產品</td>
+</tr>
+<tr>
+<td><code>supplementsSortedByRemainingDays</code></td>
+<td>List<Supplement></td>
+<td>依剩餘天數排序</td>
+</tr>
+<tr>
+<td><code>supplementsSortedByStatus</code></td>
+<td>List<Supplement></td>
+<td>依狀態排序</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_30">排序選項</h5>
+<ul>
+<li><code>SortOption.name</code>：依名稱排序</li>
+<li><code>SortOption.remainingDays</code>：依剩餘天數排序</li>
+</ul>
+<hr />
+<h4 id="shopping_list_providerdart-">🛍️ <code>shopping_list_provider.dart</code> - 採購清單狀態管理</h4>
+<h5 id="_31">功能概述</h5>
+<p>計算採購需求、管理採購週期、處理批次採購邏輯。</p>
+<h5 id="_32">核心類別</h5>
+<table>
+<thead>
+<tr>
+<th>類別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PurchaseItem</code></td>
+<td>採購項目（包含產品和購買瓶數）</td>
+</tr>
+<tr>
+<td><code>ShoppingListProvider</code></td>
+<td>採購清單狀態管理</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_33">核心變數</h5>
+<table>
+<thead>
+<tr>
+<th>變數</th>
+<th>類型</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>supplementProvider</code></td>
+<td>SupplementProvider</td>
+<td>保健食品 Provider</td>
+</tr>
+<tr>
+<td><code>_targetCycleDays</code></td>
+<td>int</td>
+<td>採購週期天數（預設 30）</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_34">主要函數</h5>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>setTargetCycleDays(days)</code></td>
+<td>設定採購週期</td>
+</tr>
+<tr>
+<td><code>calculatePurchaseList()</code></td>
+<td>計算所有產品的採購清單</td>
+</tr>
+<tr>
+<td><code>completeAllPurchases()</code></td>
+<td>完成所有採購，更新庫存</td>
+</tr>
+<tr>
+<td><code>completeSinglePurchase(id)</code></td>
+<td>完成單一產品採購</td>
+</tr>
+<tr>
+<td><code>getPurchaseSummary()</code></td>
+<td>取得採購摘要文字</td>
+</tr>
+<tr>
+<td><code>calculateEstimatedStockAfterPurchase()</code></td>
+<td>計算採購後預估庫存</td>
+</tr>
+<tr>
+<td><code>calculateRemainingDaysAfterPurchase()</code></td>
+<td>計算採購後剩餘天數</td>
+</tr>
+</tbody>
+</table>
+<h5 id="getter_1">Getter 函數</h5>
+<table>
+<thead>
+<tr>
+<th>Getter</th>
+<th>回傳值</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>itemsNeedingPurchase</code></td>
+<td>List<PurchaseItem></td>
+<td>需要購買的項目</td>
+</tr>
+<tr>
+<td><code>itemsNotNeedingPurchase</code></td>
+<td>List<PurchaseItem></td>
+<td>不需購買的項目</td>
+</tr>
+<tr>
+<td><code>totalBottlesToBuy</code></td>
+<td>int</td>
+<td>總共需購買瓶數</td>
+</tr>
+<tr>
+<td><code>totalProductsCount</code></td>
+<td>int</td>
+<td>需購買產品種類數</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="5-services">5️⃣ 服務層（services/）</h3>
+<h4 id="notification_servicedart-">🔔 <code>notification_service.dart</code> - 通知服務</h4>
+<h5 id="_35">功能概述</h5>
+<p>管理本地通知的初始化、排程、發送，支援每日和每月定時提醒。</p>
+<h5 id="_36">設計模式</h5>
+<p>單例模式（Singleton）</p>
+<h5 id="_37">核心變數</h5>
+<table>
+<thead>
+<tr>
+<th>變數</th>
+<th>類型</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_instance</code></td>
+<td>NotificationService</td>
+<td>單例實例</td>
+</tr>
+<tr>
+<td><code>_notifications</code></td>
+<td>FlutterLocalNotificationsPlugin</td>
+<td>通知插件</td>
+</tr>
+<tr>
+<td><code>_initialized</code></td>
+<td>bool</td>
+<td>是否已初始化</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_38">主要函數</h5>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>initialize()</code></td>
+<td>初始化通知服務（Android/iOS）</td>
+</tr>
+<tr>
+<td><code>requestPermissions()</code></td>
+<td>請求通知權限（iOS）</td>
+</tr>
+<tr>
+<td><code>showNotification(id, title, body)</code></td>
+<td>發送即時通知</td>
+</tr>
+<tr>
+<td><code>scheduleDailyReorderCheck(supplements)</code></td>
+<td>排程每日補貨檢查（9:00）</td>
+</tr>
+<tr>
+<td><code>scheduleMonthlyShoppingListReminder()</code></td>
+<td>排程每月採購提醒（1號 10:00）</td>
+</tr>
+<tr>
+<td><code>showReorderNotification(supplement)</code></td>
+<td>發送單一產品補貨提醒</td>
+</tr>
+<tr>
+<td><code>cancelAllNotifications()</code></td>
+<td>取消所有通知</td>
+</tr>
+<tr>
+<td><code>_nextInstanceOfTime(hour, minute)</code></td>
+<td>計算下一次指定時間</td>
+</tr>
+<tr>
+<td><code>_nextInstanceOfMonthlyTime(day, hour, minute)</code></td>
+<td>計算下一次每月時間</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_39">通知頻道</h5>
+<table>
+<thead>
+<tr>
+<th>頻道 ID</th>
+<th>名稱</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>smart_supplement_channel</code></td>
+<td>智慧藥品庫存管理 通知</td>
+<td>一般通知</td>
+</tr>
+<tr>
+<td><code>daily_reorder_channel</code></td>
+<td>每日補貨提醒</td>
+<td>每日 9:00 檢查</td>
+</tr>
+<tr>
+<td><code>monthly_shopping_channel</code></td>
+<td>每月採購提醒</td>
+<td>每月 1 號 10:00</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_40">🔄 資料流向圖</h2>
+<pre><div class="mermaid">sequenceDiagram
+    participant U as 用戶
+    participant V as View (Pages)
+    participant P as Provider
+    participant M as Model
+    participant D as Hive DB
+    participant N as Notification
+
+    U-&gt;&gt;V: 操作 UI
+    V-&gt;&gt;P: 調用 Provider 方法
+    P-&gt;&gt;M: 更新 Model 資料
+    P-&gt;&gt;D: 持久化到資料庫
+    D--&gt;&gt;P: 確認儲存
+    P-&gt;&gt;P: notifyListeners()
+    P--&gt;&gt;V: 更新 UI
+    V--&gt;&gt;U: 顯示結果
+
+    Note over P,N: 特定操作觸發通知
+    P-&gt;&gt;N: 排程通知
+    N--&gt;&gt;U: 定時提醒
+</div></pre>
+<hr />
+<h2 id="_41">📊 關鍵業務流程</h2>
+<h3 id="_42">新增保健食品流程</h3>
+<pre><div class="mermaid">flowchart TD
+    Start([用戶點擊新增]) --&gt; Input[填寫產品資訊]
+    Input --&gt; Scan{掃描條碼?}
+    Scan --&gt;|是| Scanner[啟動掃描器]
+    Scan --&gt;|否| Form[手動輸入]
+    Scanner --&gt; Form
+    Form --&gt; Upload{上傳圖片?}
+    Upload --&gt;|是| PickImg[選擇圖片]
+    Upload --&gt;|否| Validate
+    PickImg --&gt; CopyImg[複製到永久儲存]
+    CopyImg --&gt; Validate[表單驗證]
+    Validate --&gt; Create[創建 Supplement 物件]
+    Create --&gt; Save[儲存到 Hive]
+    Save --&gt; Notify[更新 UI]
+    Notify --&gt; End([返回儀表板])
+</div></pre>
+<h3 id="_43">智慧採購流程</h3>
+<pre><div class="mermaid">flowchart TD
+    Start([用戶進入採購清單]) --&gt; SetCycle[設定採購週期]
+    SetCycle --&gt; CalcAll[計算所有產品需求]
+    CalcAll --&gt; Filter{篩選}
+    Filter --&gt;|需購買| NeedList[顯示需購買清單]
+    Filter --&gt;|庫存充足| NoNeedList[顯示充足清單]
+    NeedList --&gt; ShowSummary[顯示總結]
+    NoNeedList --&gt; ShowSummary
+    ShowSummary --&gt; UserAction{用戶操作}
+    UserAction --&gt;|調整週期| SetCycle
+    UserAction --&gt;|完成採購| Confirm[確認對話框]
+    Confirm --&gt;|確認| UpdateAll[批次更新所有庫存]
+    Confirm --&gt;|取消| ShowSummary
+    UpdateAll --&gt; ResetTime[重置更新時間]
+    ResetTime --&gt; Success([採購完成])
+</div></pre>
+<hr />
+<h2 id="_44">🎯 核心技術特點</h2>
+<h3 id="1">1. 動態庫存管理</h3>
+<ul>
+<li>基於時間的自動庫存扣減</li>
+<li>不需手動記錄每次服用</li>
+<li>智慧預估目前庫存量</li>
+</ul>
+<h3 id="2">2. 智慧補貨系統</h3>
+<ul>
+<li>考慮備貨時間的安全庫存</li>
+<li>批次採購優化</li>
+<li>多階段狀態提醒（充足/建議/風險）</li>
+</ul>
+<h3 id="3">3. 本地資料持久化</h3>
+<ul>
+<li>使用 Hive NoSQL 資料庫</li>
+<li>輕量級、高效能</li>
+<li>支援自訂物件序列化</li>
+</ul>
+<h3 id="4">4. 狀態管理</h3>
+<ul>
+<li>Provider 模式</li>
+<li>響應式更新</li>
+<li>依賴注入</li>
+</ul>
+<h3 id="5">5. 通知系統</h3>
+<ul>
+<li>本地排程通知</li>
+<li>每日自動檢查</li>
+<li>每月採購提醒</li>
+</ul>
+<hr />
+<h2 id="_45">📱 支援平台</h2>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>支援狀態</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Android</td>
+<td>✅ 完整支援</td>
+<td>主要開發平台</td>
+</tr>
+<tr>
+<td>iOS</td>
+<td>✅ 完整支援</td>
+<td>需 macOS 開發環境</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td>⚠️ 部分支援</td>
+<td>桌面版，功能完整</td>
+</tr>
+<tr>
+<td>Web</td>
+<td>⚠️ 部分支援</td>
+<td>某些功能受限</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_46">📚 依賴套件</h2>
+<h3 id="_47">核心依賴</h3>
+<table>
+<thead>
+<tr>
+<th>套件</th>
+<th>版本</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>provider</code></td>
+<td>^6.1.1</td>
+<td>狀態管理</td>
+</tr>
+<tr>
+<td><code>hive</code></td>
+<td>^2.2.3</td>
+<td>本地 NoSQL 資料庫</td>
+</tr>
+<tr>
+<td><code>hive_flutter</code></td>
+<td>^1.1.0</td>
+<td>Hive Flutter 支援</td>
+</tr>
+<tr>
+<td><code>mobile_scanner</code></td>
+<td>^3.5.5</td>
+<td>條碼掃描</td>
+</tr>
+<tr>
+<td><code>cached_network_image</code></td>
+<td>^3.3.1</td>
+<td>網路圖片緩存</td>
+</tr>
+<tr>
+<td><code>image_picker</code></td>
+<td>^1.0.7</td>
+<td>圖片選擇器</td>
+</tr>
+<tr>
+<td><code>flutter_local_notifications</code></td>
+<td>^17.2.2</td>
+<td>本地通知</td>
+</tr>
+<tr>
+<td><code>uuid</code></td>
+<td>^4.3.3</td>
+<td>UUID 生成</td>
+</tr>
+<tr>
+<td><code>intl</code></td>
+<td>^0.18.1</td>
+<td>國際化和日期格式化</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_48">開發依賴</h3>
+<table>
+<thead>
+<tr>
+<th>套件</th>
+<th>版本</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>build_runner</code></td>
+<td>^2.4.7</td>
+<td>程式碼生成</td>
+</tr>
+<tr>
+<td><code>hive_generator</code></td>
+<td>^2.0.1</td>
+<td>Hive 適配器生成</td>
+</tr>
+<tr>
+<td><code>flutter_lints</code></td>
+<td>^3.0.1</td>
+<td>程式碼規範檢查</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_49">🔐 資料庫結構</h2>
+<h3 id="hive-box">Hive Box</h3>
+<table>
+<thead>
+<tr>
+<th>Box 名稱</th>
+<th>類型</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>supplements</code></td>
+<td>Box<Supplement></td>
+<td>儲存所有保健食品資料</td>
+</tr>
+</tbody>
+</table>
+<h3 id="supplement-schema">Supplement Schema</h3>
+<pre><code class="language-dart">@HiveType(typeId: 0)
+class Supplement extends HiveObject {
+  @HiveField(0) String id;
+  @HiveField(1) String? barcode;
+  @HiveField(2) String name;
+  @HiveField(3) String brand;
+  @HiveField(4) String imagePath;
+  @HiveField(5) int quantityPerBottle;
+  @HiveField(6) int dailyDosage;
+  @HiveField(7) int currentStock;
+  @HiveField(8) int leadTime;
+  @HiveField(9) DateTime lastUpdated;
+  @HiveField(10) String? localImagePath;
+}
+</code></pre>
+<hr />
+<h2 id="_50">💡 設計亮點</h2>
+<ol>
+<li><strong>無需每日記錄</strong>：基於時間的自動庫存計算</li>
+<li><strong>智慧採購建議</strong>：考慮備貨時間的批次採購優化</li>
+<li><strong>多層級狀態提醒</strong>：充足🟢 → 建議🟠 → 風險🔴</li>
+<li><strong>離線優先</strong>：所有資料儲存在本地，無需網路</li>
+<li><strong>自動化提醒</strong>：定時檢查並推送通知</li>
+<li><strong>靈活的採購週期</strong>：可自訂天數計算需求</li>
+</ol>
+<hr />
+<h2 id="uiux">🎨 UI/UX 設計原則</h2>
+<ul>
+<li><strong>Material Design 3</strong>：遵循最新設計規範</li>
+<li><strong>簡潔直觀</strong>：一目了然的狀態指示</li>
+<li><strong>快速操作</strong>：快速補貨、批次採購</li>
+<li><strong>視覺反饋</strong>：顏色編碼狀態，表情符號輔助</li>
+<li><strong>響應式設計</strong>：自適應不同螢幕尺寸</li>
+</ul>
+<hr />
+<h2 id="_51">📌 版本資訊</h2>
+<ul>
+<li><strong>當前版本</strong>：v1.1.0+2</li>
+<li><strong>最低 SDK 要求</strong>：Dart 3.0.0</li>
+<li><strong>目標平台</strong>：Android（主要）、iOS、Windows</li>
+</ul>
+<hr />
+<p><em>文檔最後更新：2025-11-24</em></p>
+        </div>
+    </div>
+    
+    <a href="#" id="back-to-top">↑ 回頂部</a>
+</body>
+</html>
