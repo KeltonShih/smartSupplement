@@ -592,34 +592,39 @@
 <li><a href="#5-services">5️⃣ 服務層（services/）</a></li>
 </ul>
 </li>
-<li><a href="#_40">🔄 資料流向圖</a></li>
-<li><a href="#_41">📊 關鍵業務流程</a><ul>
-<li><a href="#_42">新增保健食品流程</a></li>
-<li><a href="#_43">智慧採購流程</a></li>
+<li><a href="#_57">🔄 資料流向圖</a></li>
+<li><a href="#_58">📊 關鍵業務流程</a><ul>
+<li><a href="#_59">新增保健食品流程</a></li>
+<li><a href="#_60">智慧採購流程</a></li>
 </ul>
 </li>
-<li><a href="#_44">🎯 核心技術特點</a><ul>
+<li><a href="#_61">🎯 核心技術特點</a><ul>
 <li><a href="#1">1. 動態庫存管理</a></li>
 <li><a href="#2">2. 智慧補貨系統</a></li>
 <li><a href="#3">3. 本地資料持久化</a></li>
 <li><a href="#4">4. 狀態管理</a></li>
 <li><a href="#5">5. 通知系統</a></li>
+<li><a href="#6-ai">6. AI 圖片辨識</a></li>
+<li><a href="#7">7. 雲端同步</a></li>
 </ul>
 </li>
-<li><a href="#_45">📱 支援平台</a></li>
-<li><a href="#_46">📚 依賴套件</a><ul>
-<li><a href="#_47">核心依賴</a></li>
-<li><a href="#_48">開發依賴</a></li>
+<li><a href="#_62">📱 支援平台</a></li>
+<li><a href="#_63">📚 依賴套件</a><ul>
+<li><a href="#_64">核心依賴</a></li>
+<li><a href="#_65">開發依賴</a></li>
 </ul>
 </li>
-<li><a href="#_49">🔐 資料庫結構</a><ul>
+<li><a href="#_66">🔐 資料庫結構</a><ul>
 <li><a href="#hive-box">Hive Box</a></li>
 <li><a href="#supplement-schema">Supplement Schema</a></li>
 </ul>
 </li>
-<li><a href="#_50">💡 設計亮點</a></li>
+<li><a href="#_67">💡 設計亮點</a></li>
 <li><a href="#uiux">🎨 UI/UX 設計原則</a></li>
-<li><a href="#_51">📌 版本資訊</a></li>
+<li><a href="#_68">📌 版本資訊</a><ul>
+<li><a href="#v200">v2.0.0 更新內容</a></li>
+</ul>
+</li>
 </ul>
 </div>
 
@@ -653,23 +658,32 @@
     Pages --&gt; Detail[&quot;DetailPage&lt;br/&gt;產品詳情&quot;]
     Pages --&gt; Shopping[&quot;ShoppingListPage&lt;br/&gt;智慧採購清單&quot;]
     Pages --&gt; SmartAdd[&quot;SmartAddPage&lt;br/&gt;智慧新增&quot;]
+    Pages --&gt; ConfirmAdd[&quot;ConfirmAddPage&lt;br/&gt;確認新增&quot;]
 
     Providers --&gt; SupProvider[&quot;SupplementProvider&lt;br/&gt;保健食品狀態管理&quot;]
     Providers --&gt; ShopProvider[&quot;ShoppingListProvider&lt;br/&gt;採購清單狀態管理&quot;]
 
     Services --&gt; NotifService[&quot;NotificationService&lt;br/&gt;通知服務&quot;]
+    Services --&gt; FirebaseService[&quot;FirebaseService&lt;br/&gt;雲端資料庫&quot;]
+    Services --&gt; GeminiService[&quot;GeminiService&lt;br/&gt;AI 圖片辨識&quot;]
+    Services --&gt; GoogleService[&quot;GoogleSearchService&lt;br/&gt;圖片搜尋&quot;]
 
     Models[資料模型 Models] --&gt; Supplement[&quot;Supplement&lt;br/&gt;保健食品模型&quot;]
 
     SupProvider --&gt; Hive[(Hive Database&lt;br/&gt;本地資料庫)]
     SupProvider --&gt; Models
+    SupProvider --&gt; FirebaseService
     ShopProvider --&gt; SupProvider
     ShopProvider --&gt; Models
 
     Dashboard --&gt; SupProvider
     Detail --&gt; SupProvider
     Shopping --&gt; ShopProvider
-    SmartAdd --&gt; SupProvider
+    SmartAdd --&gt; GeminiService
+    SmartAdd --&gt; GoogleService
+    SmartAdd --&gt; FirebaseService
+    ConfirmAdd --&gt; SupProvider
+    ConfirmAdd --&gt; FirebaseService
 
     Main --&gt; NotifService
     Dashboard --&gt; NotifService
@@ -1137,7 +1151,7 @@
 <hr />
 <h4 id="smart_add_pagedart-">➕ <code>smart_add_page.dart</code> - 智慧新增頁面</h4>
 <h5 id="_23">功能概述</h5>
-<p>新增保健食品，支援條碼掃描、手動輸入、圖片上傳等功能。</p>
+<p>新增保健食品，支援 <strong>AI 圖片辨識</strong>、<strong>手動搜尋（含 AI 分析）</strong>、<strong>手動輸入</strong>等多種方式。</p>
 <h5 id="_24">狀態管理</h5>
 <table>
 <thead>
@@ -1164,9 +1178,14 @@
 <td>是否顯示掃描器</td>
 </tr>
 <tr>
-<td><code>_selectedImagePath</code></td>
-<td>String?</td>
-<td>選擇的圖片路徑</td>
+<td><code>_isLoading</code></td>
+<td>bool</td>
+<td>是否顯示載入中</td>
+</tr>
+<tr>
+<td><code>_loadingText</code></td>
+<td>String</td>
+<td>載入提示文字</td>
 </tr>
 </tbody>
 </table>
@@ -1180,61 +1199,136 @@
 </thead>
 <tbody>
 <tr>
-<td><code>dispose()</code></td>
-<td>釋放所有控制器資源</td>
+<td><code>_pickImageAndIdentify()</code></td>
+<td>拍照或選擇圖片 → AI 辨識 → Firebase 搜尋 → 顯示結果列表</td>
 </tr>
 <tr>
-<td><code>_pickImage()</code></td>
-<td>選擇產品圖片</td>
+<td><code>_searchProductInfo()</code></td>
+<td>手動輸入品牌/名稱 → Google 圖片搜尋 → AI 分析 → Firebase 搜尋 → 顯示結果</td>
 </tr>
 <tr>
-<td><code>_copyImageToPermanentStorage()</code></td>
-<td>複製圖片到永久儲存</td>
+<td><code>_showLoading(text)</code></td>
+<td>顯示載入畫面</td>
 </tr>
 <tr>
-<td><code>_saveSupplement()</code></td>
-<td>儲存新產品到資料庫</td>
+<td><code>_hideLoading()</code></td>
+<td>隱藏載入畫面</td>
 </tr>
 <tr>
 <td><code>_buildScanner()</code></td>
 <td>構建條碼掃描器 UI</td>
 </tr>
 <tr>
-<td><code>_buildForm()</code></td>
-<td>構建輸入表單 UI</td>
+<td><code>_buildBody()</code></td>
+<td>構建主要 UI</td>
 </tr>
 </tbody>
 </table>
-<h5 id="_26">表單區塊</h5>
-<ol>
-<li><strong>條碼掃描區</strong></li>
-<li>手動輸入條碼</li>
-<li>
-<p>掃描器按鈕</p>
-</li>
-<li>
-<p><strong>基本資訊區</strong></p>
-</li>
-<li>產品名稱（必填）</li>
-<li>品牌（必填）</li>
-<li>產品圖片選擇</li>
-<li>
-<p>圖片網址（選填）</p>
-</li>
-<li>
-<p><strong>庫存設定區</strong></p>
-</li>
-<li>單瓶數量（預設 60）</li>
-<li>每日劑量（預設 2）</li>
-<li>目前庫存（預設 0）</li>
-<li>備貨天數（預設 3）</li>
-</ol>
+<h5 id="_26">功能模式</h5>
+<p><strong>1. AI 圖片辨識模式</strong>
+- 選擇圖片來源（相機/相簿）
+- Gemini AI 辨識產品資訊
+- 平行搜尋：Firebase + Google 圖片
+- 顯示結果列表（Firebase 優先，綠框標示）
+- 點選後進入確認頁面</p>
+<p><strong>2. 手動搜尋模式</strong>
+- 輸入品牌和產品名稱
+- Google 搜尋產品圖片（5 張）
+- AI 平行分析所有圖片
+- 過濾結果（移除重量數字誤判）
+- Firebase 搜尋現有資料
+- 合併顯示所有結果</p>
+<p><strong>3. 手動輸入模式</strong>
+- 直接跳過搜尋
+- 進入確認頁面手動輸入</p>
+<h5 id="_27">搜尋結果顯示</h5>
+<p>結果卡片包含：
+- 產品圖片（網路或本地）
+- 來源標示（Firebase 綠框 / AI 藍框）
+- 品牌名稱
+- 產品名稱
+- 數量（顆/瓶）
+- 每日建議劑量</p>
+<hr />
+<h4 id="confirm_add_pagedart-">✅ <code>confirm_add_page.dart</code> - 確認新增頁面</h4>
+<h5 id="_28">功能概述</h5>
+<p>確認並編輯產品資訊後新增到資料庫，支援 AI 辨識結果的微調。</p>
+<h5 id="_29">初始資料來源</h5>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>來源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>brand</code></td>
+<td>AI 辨識 / 手動輸入</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>AI 辨識 / 手動輸入</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>AI 生成（繁體中文）</td>
+</tr>
+<tr>
+<td><code>image_url</code></td>
+<td>Google 搜尋結果</td>
+</tr>
+<tr>
+<td><code>local_image_path</code></td>
+<td>拍照圖片</td>
+</tr>
+<tr>
+<td><code>quantityPerBottle</code></td>
+<td>AI 辨識 / 手動輸入</td>
+</tr>
+<tr>
+<td><code>dailyDosage</code></td>
+<td>AI 辨識 / 手動輸入</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_30">核心功能</h5>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>資料預填</td>
+<td>載入 AI 辨識或搜尋結果</td>
+</tr>
+<tr>
+<td>圖片選擇</td>
+<td>可重新選擇產品圖片</td>
+</tr>
+<tr>
+<td>表單驗證</td>
+<td>必填欄位檢查</td>
+</tr>
+<tr>
+<td>儲存到資料庫</td>
+<td>Hive 本地 + Firebase 雲端（可選）</td>
+</tr>
+<tr>
+<td>自動導航</td>
+<td>儲存後返回首頁並自動刷新</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h3 id="4-providers">4️⃣ 狀態管理層（providers/）</h3>
 <h4 id="supplement_providerdart-">🔄 <code>supplement_provider.dart</code> - 保健食品狀態管理</h4>
-<h5 id="_27">功能概述</h5>
+<h5 id="_31">功能概述</h5>
 <p>管理所有保健食品的資料存取、CRUD 操作、排序功能。</p>
-<h5 id="_28">核心變數</h5>
+<h5 id="_32">核心變數</h5>
 <table>
 <thead>
 <tr>
@@ -1261,7 +1355,7 @@
 </tr>
 </tbody>
 </table>
-<h5 id="_29">主要函數</h5>
+<h5 id="_33">主要函數</h5>
 <table>
 <thead>
 <tr>
@@ -1345,16 +1439,16 @@
 </tr>
 </tbody>
 </table>
-<h5 id="_30">排序選項</h5>
+<h5 id="_34">排序選項</h5>
 <ul>
 <li><code>SortOption.name</code>：依名稱排序</li>
 <li><code>SortOption.remainingDays</code>：依剩餘天數排序</li>
 </ul>
 <hr />
 <h4 id="shopping_list_providerdart-">🛍️ <code>shopping_list_provider.dart</code> - 採購清單狀態管理</h4>
-<h5 id="_31">功能概述</h5>
+<h5 id="_35">功能概述</h5>
 <p>計算採購需求、管理採購週期、處理批次採購邏輯。</p>
-<h5 id="_32">核心類別</h5>
+<h5 id="_36">核心類別</h5>
 <table>
 <thead>
 <tr>
@@ -1373,7 +1467,7 @@
 </tr>
 </tbody>
 </table>
-<h5 id="_33">核心變數</h5>
+<h5 id="_37">核心變數</h5>
 <table>
 <thead>
 <tr>
@@ -1395,7 +1489,7 @@
 </tr>
 </tbody>
 </table>
-<h5 id="_34">主要函數</h5>
+<h5 id="_38">主要函數</h5>
 <table>
 <thead>
 <tr>
@@ -1469,11 +1563,11 @@
 <hr />
 <h3 id="5-services">5️⃣ 服務層（services/）</h3>
 <h4 id="notification_servicedart-">🔔 <code>notification_service.dart</code> - 通知服務</h4>
-<h5 id="_35">功能概述</h5>
+<h5 id="_39">功能概述</h5>
 <p>管理本地通知的初始化、排程、發送，支援每日和每月定時提醒。</p>
-<h5 id="_36">設計模式</h5>
+<h5 id="_40">設計模式</h5>
 <p>單例模式（Singleton）</p>
-<h5 id="_37">核心變數</h5>
+<h5 id="_41">核心變數</h5>
 <table>
 <thead>
 <tr>
@@ -1500,7 +1594,7 @@
 </tr>
 </tbody>
 </table>
-<h5 id="_38">主要函數</h5>
+<h5 id="_42">主要函數</h5>
 <table>
 <thead>
 <tr>
@@ -1547,7 +1641,7 @@
 </tr>
 </tbody>
 </table>
-<h5 id="_39">通知頻道</h5>
+<h5 id="_43">通知頻道</h5>
 <table>
 <thead>
 <tr>
@@ -1575,7 +1669,188 @@
 </tbody>
 </table>
 <hr />
-<h2 id="_40">🔄 資料流向圖</h2>
+<h4 id="firebase_servicedart-firebase">🔥 <code>firebase_service.dart</code> - Firebase 雲端服務</h4>
+<h5 id="_44">功能概述</h5>
+<p>管理 Firebase Firestore 雲端資料庫的連接、產品搜尋、儲存等功能。</p>
+<h5 id="_45">設計模式</h5>
+<p>單例模式（Singleton）</p>
+<h5 id="_46">核心變數</h5>
+<table>
+<thead>
+<tr>
+<th>變數</th>
+<th>類型</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_instance</code></td>
+<td>FirebaseService</td>
+<td>單例實例</td>
+</tr>
+<tr>
+<td><code>_firestore</code></td>
+<td>FirebaseFirestore?</td>
+<td>Firestore 實例</td>
+</tr>
+<tr>
+<td><code>_isInitialized</code></td>
+<td>bool</td>
+<td>是否已初始化</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_47">主要函數</h5>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>initialize()</code></td>
+<td>初始化 Firebase 連接</td>
+</tr>
+<tr>
+<td><code>findProduct(name, brand)</code></td>
+<td>搜尋產品（支援模糊搜尋、大小寫不敏感、回傳多筆結果）</td>
+</tr>
+<tr>
+<td><code>saveProduct(productData)</code></td>
+<td>儲存產品到雲端（防止重複，使用 brand+name+count 作為 ID）</td>
+</tr>
+<tr>
+<td><code>getProductCount()</code></td>
+<td>取得雲端產品數量</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_48">模糊搜尋邏輯</h5>
+<ol>
+<li>先嘗試精確比對（brand + name）</li>
+<li>如果找不到，進行模糊比對：</li>
+<li>正規化字串（轉小寫、移除特殊字元）</li>
+<li>品牌：包含匹配（雙向）</li>
+<li>名稱：包含匹配</li>
+<li>回傳所有符合的結果列表</li>
+</ol>
+<h5 id="_49">防重複機制</h5>
+<ul>
+<li>文件 ID = <code>{brand}_{name}_{count}</code>（正規化後）</li>
+<li>使用 <code>set()</code> 取代 <code>add()</code></li>
+<li>相同產品規格只會有一筆資料</li>
+</ul>
+<hr />
+<h4 id="gemini_servicedart-gemini-ai">🤖 <code>gemini_service.dart</code> - Gemini AI 服務</h4>
+<h5 id="_50">功能概述</h5>
+<p>使用 Google Gemini AI 進行產品圖片辨識、分析產品資訊。</p>
+<h5 id="_51">設計模式</h5>
+<p>單例模式（Singleton）</p>
+<h5 id="_52">核心變數</h5>
+<table>
+<thead>
+<tr>
+<th>變數</th>
+<th>類型</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_instance</code></td>
+<td>GeminiService</td>
+<td>單例實例</td>
+</tr>
+<tr>
+<td><code>_workingModelName</code></td>
+<td>String?</td>
+<td>目前可用的模型名稱</td>
+</tr>
+<tr>
+<td><code>_modelCandidates</code></td>
+<td>List<String></td>
+<td>候選模型列表</td>
+</tr>
+</tbody>
+</table>
+<h5 id="_53">主要函數</h5>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>identifyProduct(imageFile)</code></td>
+<td>辨識產品圖片，提取品牌、名稱、數量等資訊</td>
+</tr>
+<tr>
+<td><code>analyzeProductImageFromUrl(imageUrl)</code></td>
+<td>從 URL 下載並分析產品圖片</td>
+</tr>
+<tr>
+<td><code>getProductInfo(name, brand)</code></td>
+<td>取得產品詳細資訊</td>
+</tr>
+</tbody>
+</table>
+<h5 id="ai">AI 辨識流程</h5>
+<ol>
+<li>讀取圖片檔案</li>
+<li>構建分析 prompt（要求品牌全名、產品名稱、數量、劑量、描述）</li>
+<li>呼叫 Gemini Vision API</li>
+<li>解析 JSON 回應</li>
+<li>正規化數字欄位（提取純數字）</li>
+</ol>
+<h5 id="prompt">Prompt 設計</h5>
+<ul>
+<li>要求完整官方製造商名稱（如 "NOW Foods" 而非 "NOW"）</li>
+<li>區分 count（顆數）和 strength（劑量）</li>
+<li>產品名稱保持原文（不翻譯）</li>
+<li>描述翻譯成繁體中文</li>
+</ul>
+<hr />
+<h4 id="google_search_servicedart-google">🔍 <code>google_search_service.dart</code> - Google 搜尋服務</h4>
+<h5 id="_54">功能概述</h5>
+<p>使用 Google Custom Search API 搜尋產品圖片。</p>
+<h5 id="_55">設計模式</h5>
+<p>單例模式（Singleton）</p>
+<h5 id="_56">主要函數</h5>
+<table>
+<thead>
+<tr>
+<th>函數</th>
+<th>功能說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>searchImages(query, limit)</code></td>
+<td>搜尋多張圖片，回傳 URL 列表</td>
+</tr>
+<tr>
+<td><code>searchImage(query)</code></td>
+<td>搜尋單張圖片，回傳第一張圖片 URL</td>
+</tr>
+<tr>
+<td><code>searchProducts(query)</code></td>
+<td>搜尋產品網頁（含標題、摘要、圖片）</td>
+</tr>
+</tbody>
+</table>
+<h5 id="api">API 配置</h5>
+<ul>
+<li>需要 Google Custom Search API Key</li>
+<li>需要 Search Engine ID</li>
+<li>配置於 <code>config/api_keys.dart</code></li>
+</ul>
+<hr />
+<h2 id="_57">🔄 資料流向圖</h2>
 <pre><div class="mermaid">sequenceDiagram
     participant U as 用戶
     participant V as View (Pages)
@@ -1598,8 +1873,8 @@
     N--&gt;&gt;U: 定時提醒
 </div></pre>
 <hr />
-<h2 id="_41">📊 關鍵業務流程</h2>
-<h3 id="_42">新增保健食品流程</h3>
+<h2 id="_58">📊 關鍵業務流程</h2>
+<h3 id="_59">新增保健食品流程</h3>
 <pre><div class="mermaid">flowchart TD
     Start([用戶點擊新增]) --&gt; Input[填寫產品資訊]
     Input --&gt; Scan{掃描條碼?}
@@ -1616,7 +1891,7 @@
     Save --&gt; Notify[更新 UI]
     Notify --&gt; End([返回儀表板])
 </div></pre>
-<h3 id="_43">智慧採購流程</h3>
+<h3 id="_60">智慧採購流程</h3>
 <pre><div class="mermaid">flowchart TD
     Start([用戶進入採購清單]) --&gt; SetCycle[設定採購週期]
     SetCycle --&gt; CalcAll[計算所有產品需求]
@@ -1634,7 +1909,7 @@
     ResetTime --&gt; Success([採購完成])
 </div></pre>
 <hr />
-<h2 id="_44">🎯 核心技術特點</h2>
+<h2 id="_61">🎯 核心技術特點</h2>
 <h3 id="1">1. 動態庫存管理</h3>
 <ul>
 <li>基於時間的自動庫存扣減</li>
@@ -1665,8 +1940,21 @@
 <li>每日自動檢查</li>
 <li>每月採購提醒</li>
 </ul>
+<h3 id="6-ai">6. AI 圖片辨識</h3>
+<ul>
+<li>Gemini Vision API</li>
+<li>自動提取產品資訊（品牌、名稱、數量、劑量）</li>
+<li>多圖平行分析</li>
+</ul>
+<h3 id="7">7. 雲端同步</h3>
+<ul>
+<li>Firebase Firestore</li>
+<li>產品資料備份</li>
+<li>模糊搜尋（大小寫不敏感）</li>
+<li>防重複機制</li>
+</ul>
 <hr />
-<h2 id="_45">📱 支援平台</h2>
+<h2 id="_62">📱 支援平台</h2>
 <table>
 <thead>
 <tr>
@@ -1699,8 +1987,8 @@
 </tbody>
 </table>
 <hr />
-<h2 id="_46">📚 依賴套件</h2>
-<h3 id="_47">核心依賴</h3>
+<h2 id="_63">📚 依賴套件</h2>
+<h3 id="_64">核心依賴</h3>
 <table>
 <thead>
 <tr>
@@ -1724,6 +2012,26 @@
 <td><code>hive_flutter</code></td>
 <td>^1.1.0</td>
 <td>Hive Flutter 支援</td>
+</tr>
+<tr>
+<td><code>firebase_core</code></td>
+<td>^3.10.0</td>
+<td>Firebase 核心</td>
+</tr>
+<tr>
+<td><code>cloud_firestore</code></td>
+<td>^5.6.0</td>
+<td>Firebase Firestore 雲端資料庫</td>
+</tr>
+<tr>
+<td><code>google_generative_ai</code></td>
+<td>^0.4.6</td>
+<td>Gemini AI SDK</td>
+</tr>
+<tr>
+<td><code>http</code></td>
+<td>^1.2.2</td>
+<td>HTTP 請求（Google Search API）</td>
 </tr>
 <tr>
 <td><code>mobile_scanner</code></td>
@@ -1755,9 +2063,14 @@
 <td>^0.18.1</td>
 <td>國際化和日期格式化</td>
 </tr>
+<tr>
+<td><code>path_provider</code></td>
+<td>^2.1.2</td>
+<td>檔案路徑存取</td>
+</tr>
 </tbody>
 </table>
-<h3 id="_48">開發依賴</h3>
+<h3 id="_65">開發依賴</h3>
 <table>
 <thead>
 <tr>
@@ -1785,7 +2098,7 @@
 </tbody>
 </table>
 <hr />
-<h2 id="_49">🔐 資料庫結構</h2>
+<h2 id="_66">🔐 資料庫結構</h2>
 <h3 id="hive-box">Hive Box</h3>
 <table>
 <thead>
@@ -1820,7 +2133,7 @@ class Supplement extends HiveObject {
 }
 </code></pre>
 <hr />
-<h2 id="_50">💡 設計亮點</h2>
+<h2 id="_67">💡 設計亮點</h2>
 <ol>
 <li><strong>無需每日記錄</strong>：基於時間的自動庫存計算</li>
 <li><strong>智慧採購建議</strong>：考慮備貨時間的批次採購優化</li>
@@ -1828,6 +2141,10 @@ class Supplement extends HiveObject {
 <li><strong>離線優先</strong>：所有資料儲存在本地，無需網路</li>
 <li><strong>自動化提醒</strong>：定時檢查並推送通知</li>
 <li><strong>靈活的採購週期</strong>：可自訂天數計算需求</li>
+<li><strong>AI 圖片辨識</strong>：拍照即可自動辨識產品資訊</li>
+<li><strong>智慧搜尋</strong>：Google 圖片搜尋 + AI 多圖分析</li>
+<li><strong>雲端同步</strong>：Firebase 備份，支援跨裝置同步</li>
+<li><strong>模糊匹配</strong>：大小寫不敏感、支援部分名稱搜尋</li>
 </ol>
 <hr />
 <h2 id="uiux">🎨 UI/UX 設計原則</h2>
@@ -1839,14 +2156,26 @@ class Supplement extends HiveObject {
 <li><strong>響應式設計</strong>：自適應不同螢幕尺寸</li>
 </ul>
 <hr />
-<h2 id="_51">📌 版本資訊</h2>
+<h2 id="_68">📌 版本資訊</h2>
 <ul>
-<li><strong>當前版本</strong>：v1.1.0+2</li>
+<li><strong>當前版本</strong>：v2.0.0+6</li>
 <li><strong>最低 SDK 要求</strong>：Dart 3.0.0</li>
 <li><strong>目標平台</strong>：Android（主要）、iOS、Windows</li>
 </ul>
+<h3 id="v200">v2.0.0 更新內容</h3>
+<ul>
+<li>✨ 新增 <strong>Gemini AI 圖片辨識</strong>功能</li>
+<li>✨ 新增 <strong>Google 圖片搜尋</strong>功能</li>
+<li>✨ 新增 <strong>Firebase 雲端同步</strong>功能</li>
+<li>✨ 新增 <strong>智慧產品搜尋</strong>（模糊匹配、大小寫不敏感）</li>
+<li>✨ 新增 <strong>ConfirmAddPage</strong> 確認新增頁面</li>
+<li>🔧 優化 SmartAddPage 為三種輸入模式</li>
+<li>🔧 改善品牌名稱辨識準確度</li>
+<li>🐛 修正 Firebase 重複資料問題</li>
+<li>🐛 修正搜尋結果過濾邏輯</li>
+</ul>
 <hr />
-<p><em>文檔最後更新：2025-11-24</em></p>
+<p><em>文檔最後更新：2025-11-26</em></p>
         </div>
     </div>
     
